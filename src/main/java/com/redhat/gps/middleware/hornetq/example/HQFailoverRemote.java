@@ -9,6 +9,7 @@ import java.util.TreeSet;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
+import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
@@ -18,31 +19,41 @@ import javax.naming.InitialContext;
 public class HQFailoverRemote {
 
 	private enum CONFIG_NAMES {
-		HELP("help"), 
-		VERBOSE("verbose"), 
-		PRODUCER("producer"), 
-		CONSUMER("consumer"), 
+		HELP("help","[prints this help message]"), 
+		DRY_RUN("dry","[activate dry run mode]"),
+		VERBOSE("verbose","[activate verbose output]"), 
+		PRODUCER("producer","[activate producer mode]"), 
+		CONSUMER("consumer", "[activate producer mode]"), 
+		JNDI_PROVIDER_HOST("jndi.provider.host"), 
+		JNDI_PROVIDER_PORT("jndi.provider.port"),
 		DESTINATION("dest.name"), 
 		FACTORY("factory.name"), 
 		MESSAGE_TEXT("msg.text"), 
-		MESSAGE_COUNT("msg.count"), 
-		MESSAGE_INTERVAL("msg.interval"), 
-		JNDI_PROVIDER_HOST("jndi.provider.host"), 
-		JNDI_PROVIDER_PORT("jndi.provider.port")
+		MESSAGE_COUNT("msg.count","[amount of messages consumed/produced (default: 10 producer, -1/indefinite consumer )]"), 
+		MESSAGE_INTERVAL("msg.interval","[interval between messages, in ms (default:500ms)]"), 
 		;
-		private String property;
+		private String property, helpText;
 
 		CONFIG_NAMES(String property) {
+			this(property,"");
+		};
+		
+		CONFIG_NAMES(String property, String helpText) {
 			this.property = property;
+			this.helpText = helpText;
 		};
 
 		@Override
 		public String toString() {
 			return property;
 		}
+		
+		public String helpText() {
+			return helpText;
+		}
 	}
 
-	private Boolean verbose, producer, consumer;
+	private Boolean verbose, dryRun, producerMode, consumerMode = false;
 
 	private final Map<CONFIG_NAMES, Object> configMap = new LinkedHashMap<>(CONFIG_NAMES.values().length);
 
@@ -58,32 +69,23 @@ public class HQFailoverRemote {
 
 	private Long interval;
 
+
 	public static void main(String[] args) throws Exception {
 		if (System.getProperty(CONFIG_NAMES.HELP.toString()) != null) {
 			printHelp();
 			System.exit(0);
 		}
-		HQFailoverRemote instance = new HQFailoverRemote();
-		instance.parseConfig();
-		instance.printConfigMap();
-		instance.run();
-	}
-
-	private void run() {
-		if (producer) {
-			if(verbose()) {
-				System.out.println("PRODUCER Mode");
-			}
-			//produce(amount);
-		} else if (consumer) {
-			if(verbose()) {
-				System.out.println("CONSUMER Mode");
-			}
-			//consume(amount);
-		} else {
-			System.out.println("producer or consumer must be specified");
+		try {
+			HQFailoverRemote instance = new HQFailoverRemote();
+			instance.parseConfig();
+			instance.printConfigMap();
+			instance.run();
+		} catch (Exception e) {
+			System.out.println("ERROR"+e.getMessage());
 			printHelp();
 		}
+		System.out.println("Done.");
+		System.exit(0);
 	}
 
 	private boolean verbose() {
@@ -124,30 +126,40 @@ public class HQFailoverRemote {
 
 	private void parseConfig() throws Exception {
 		verbose();
+		dryRun = getConfig(CONFIG_NAMES.DRY_RUN, null) != null;
 		jndiURL = "remote://" + getConfig(CONFIG_NAMES.JNDI_PROVIDER_HOST, "localhost") + ":"
 				+ getConfig(CONFIG_NAMES.JNDI_PROVIDER_PORT, "1099");
 		destinationName = getConfig(CONFIG_NAMES.DESTINATION, "/queue/TEST");
-		producer = getConfig(CONFIG_NAMES.PRODUCER, null) != null;
-		consumer = getConfig(CONFIG_NAMES.CONSUMER, null) != null;
-		amount = getConfig(CONFIG_NAMES.MESSAGE_COUNT, 10);
+		producerMode = getConfig(CONFIG_NAMES.PRODUCER, null) != null;
+		consumerMode = getConfig(CONFIG_NAMES.CONSUMER, null) != null;
+		amount = getConfig(CONFIG_NAMES.MESSAGE_COUNT, (producerMode ? 10 : -1));
 		amount = (amount == -1 ? Integer.MAX_VALUE : amount);
 		msg = getConfig(CONFIG_NAMES.MESSAGE_TEXT, "JMS Text Message #");
 		interval = getConfig(CONFIG_NAMES.MESSAGE_INTERVAL, 500L);
 		factoryName = getConfig(CONFIG_NAMES.FACTORY, "/RemoteConnectionFactory");
-
+		System.out.println();
 	}
 
 	private static void printHelp() {
 		System.out.println("usage: java -D<parameter>=<value> -jar jar_file_name.jar");
 		System.out.println("\tparameters:");
 		for (CONFIG_NAMES config : CONFIG_NAMES.values()) {
-			System.out.println("\t\t" + config.toString());
+			
+			System.out.println("\t\t" + String.format("%-25s",config.toString()) + config.helpText());
 		}
-
+		System.out.println();
 	}
-
-	protected void produce() throws Exception {
-/* */
+	
+	protected void run() throws Exception {
+		if(dryRun) {
+			System.out.println("Dry Run");
+			return;
+		}
+		if (!(producerMode ^ consumerMode)) {
+			System.out.println("ERROR: producer or consumer must be specified (mutually exclusive)");
+			printHelp();
+			return;
+		}
 		Connection connection = null;
 
 		InitialContext initialContext = null;
@@ -160,31 +172,51 @@ public class HQFailoverRemote {
 			initialContext = new InitialContext(properties);
 			Destination destination;
 
-			// Step 2. Look up the JMS resources from JNDI
 			destination = (Destination) initialContext.lookup(destinationName);
 			ConnectionFactory connectionFactory = (ConnectionFactory) initialContext.lookup(factoryName);
 
-			// Step 3. Create a JMS Connection
 			connection = connectionFactory.createConnection();
 
-			// Step 4. Create a *non-transacted* JMS Session with auto acknwoledgement
 			Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-			// Step 5. Start the connection to ensure delivery occurs
 			connection.start();
 
-			// Step 6. Create a JMS MessageProducer and a MessageConsumer
-			MessageProducer producer = session.createProducer(destination);
+			if (producerMode) {
+				if(verbose()) {
+					System.out.println("PRODUCER Mode");
+				}
+				
+				MessageProducer producer = session.createProducer(destination);
 
-			// Step 7. Send some messages to server #1, the live server
-			for (int i = 0; i < amount; i++) {
-				TextMessage message = session.createTextMessage(msg + i);
-				producer.send(message);
-				System.out.println("Sent message: " + message.getText());
-				Thread.sleep(interval);
-			}
+				for (int i = 0; i < amount; i++) {
+					try {
+						TextMessage message = session.createTextMessage(msg + i);
+						producer.send(message);
+						System.out.println("Sent message: " + message.getText());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					Thread.sleep(interval);
+				}
+			} else if (consumerMode) {
+				if(verbose()) {
+					System.out.println("CONSUMER Mode");
+				}
+
+				MessageConsumer consumer = session.createConsumer(destination);
+
+				for (int i = 0; i < amount; i++) {
+					try {
+						TextMessage message = (TextMessage) consumer.receive();
+						System.out.println("Received message: " + message.getText());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					Thread.sleep(interval);
+				}
+			} 
+
 		} finally {
-			// Be sure to close our resources!
 
 			if (connection != null) {
 				connection.close();
@@ -194,6 +226,5 @@ public class HQFailoverRemote {
 				initialContext.close();
 			}
 		} 
-		/* */
 	}
 }
