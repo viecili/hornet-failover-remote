@@ -136,7 +136,7 @@ public class HQFailoverRemote {
 		amount = Integer.valueOf(getConfig(CONFIG_NAMES.MESSAGE_COUNT, (producerMode ? "10" : "-1")));
 		amount = (amount == -1 ? Integer.MAX_VALUE : amount);
 		msg = getConfig(CONFIG_NAMES.MESSAGE_TEXT, "JMS Text Message #");
-		interval = getConfig(CONFIG_NAMES.MESSAGE_INTERVAL, 500L);
+		interval = Long.valueOf(getConfig(CONFIG_NAMES.MESSAGE_INTERVAL, "500"));
 		factoryName = getConfig(CONFIG_NAMES.FACTORY, "/RemoteConnectionFactory");
 		System.out.println();
 	}
