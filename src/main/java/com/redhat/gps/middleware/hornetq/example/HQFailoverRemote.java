@@ -83,6 +83,7 @@ public class HQFailoverRemote {
 		} catch (Exception e) {
 			System.out.println("ERROR"+e.getMessage());
 			printHelp();
+			throw e;
 		}
 		System.out.println("Done.");
 		System.exit(0);
