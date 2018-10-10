@@ -133,7 +133,7 @@ public class HQFailoverRemote {
 		destinationName = getConfig(CONFIG_NAMES.DESTINATION, "/queue/TEST");
 		producerMode = getConfig(CONFIG_NAMES.PRODUCER, null) != null;
 		consumerMode = getConfig(CONFIG_NAMES.CONSUMER, null) != null;
-		amount = getConfig(CONFIG_NAMES.MESSAGE_COUNT, (producerMode ? 10 : -1));
+		amount = Integer.valueOf(getConfig(CONFIG_NAMES.MESSAGE_COUNT, (producerMode ? "10" : "-1")));
 		amount = (amount == -1 ? Integer.MAX_VALUE : amount);
 		msg = getConfig(CONFIG_NAMES.MESSAGE_TEXT, "JMS Text Message #");
 		interval = getConfig(CONFIG_NAMES.MESSAGE_INTERVAL, 500L);
