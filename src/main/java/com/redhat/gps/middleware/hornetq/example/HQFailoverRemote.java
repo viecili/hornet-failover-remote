@@ -81,9 +81,9 @@ public class HQFailoverRemote {
 			instance.printConfigMap();
 			instance.run();
 		} catch (Exception e) {
-			System.out.println("ERROR"+e.getMessage());
+			System.out.println("ERROR: "+e.getMessage());
 			printHelp();
-			throw e;
+			e.printStackTrace(System.out);
 		}
 		System.out.println("Done.");
 		System.exit(0);

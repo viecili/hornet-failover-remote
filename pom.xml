@@ -17,6 +17,12 @@
             <artifactId>jboss-remote-naming</artifactId>
             <version>1.0.10.Final</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.jboss.xnio</groupId>
+            <artifactId>xnio-nio</artifactId>
+            <version>3.0.13.GA</version>
+        </dependency>
     </dependencies>
     <build>
         <finalName>${artifactId}</finalName>
