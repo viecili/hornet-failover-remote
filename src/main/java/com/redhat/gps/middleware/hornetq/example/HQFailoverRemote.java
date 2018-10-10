@@ -24,6 +24,7 @@ public class HQFailoverRemote {
 		VERBOSE("verbose","[activate verbose output]"), 
 		PRODUCER("producer","[activate producer mode]"), 
 		CONSUMER("consumer", "[activate producer mode]"), 
+		JNDI_PROVIDER_URL(Context.PROVIDER_URL),
 		JNDI_PROVIDER_HOST("jndi.provider.host"), 
 		JNDI_PROVIDER_PORT("jndi.provider.port"),
 		DESTINATION("dest.name"), 
@@ -128,8 +129,11 @@ public class HQFailoverRemote {
 	private void parseConfig() throws Exception {
 		verbose();
 		dryRun = getConfig(CONFIG_NAMES.DRY_RUN, null) != null;
-		jndiURL = "remote://" + getConfig(CONFIG_NAMES.JNDI_PROVIDER_HOST, "localhost") + ":"
-				+ getConfig(CONFIG_NAMES.JNDI_PROVIDER_PORT, "1099");
+		jndiURL = getConfig(CONFIG_NAMES.JNDI_PROVIDER_URL, null);
+		if (jndiURL == null) {
+			jndiURL = "remote://" + getConfig(CONFIG_NAMES.JNDI_PROVIDER_HOST, "localhost") + ":"
+					+ getConfig(CONFIG_NAMES.JNDI_PROVIDER_PORT, "4447");
+		}
 		destinationName = getConfig(CONFIG_NAMES.DESTINATION, "/queue/TEST");
 		producerMode = getConfig(CONFIG_NAMES.PRODUCER, null) != null;
 		consumerMode = getConfig(CONFIG_NAMES.CONSUMER, null) != null;
