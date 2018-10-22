@@ -19,26 +19,21 @@ import javax.naming.InitialContext;
 public class HQFailoverRemote {
 
 	private enum CONFIG_NAMES {
-		HELP("help","[prints this help message]"), 
-		DRY_RUN("dry","[activate dry run mode]"),
-		VERBOSE("verbose","[activate verbose output]"), 
-		PRODUCER("producer","[activate producer mode]"), 
-		CONSUMER("consumer", "[activate producer mode]"), 
-		JNDI_PROVIDER_URL(Context.PROVIDER_URL),
-		JNDI_PROVIDER_HOST("jndi.provider.host"), 
-		JNDI_PROVIDER_PORT("jndi.provider.port"),
-		DESTINATION("dest.name"), 
-		FACTORY("factory.name"), 
-		MESSAGE_TEXT("msg.text"), 
-		MESSAGE_COUNT("msg.count","[amount of messages consumed/produced (default: 10 producer, -1/indefinite consumer )]"), 
-		MESSAGE_INTERVAL("msg.interval","[interval between messages, in ms (default:500ms)]"), 
-		;
+		HELP("help", "[prints this help message]"), DRY_RUN("dry", "[activate dry run mode]"), VERBOSE("verbose",
+				"[activate verbose output]"), PRODUCER("producer", "[activate producer mode]"), CONSUMER("consumer",
+						"[activate producer mode]"), JNDI_PROVIDER_URL(Context.PROVIDER_URL), JNDI_PROVIDER_HOST(
+								"jndi.provider.host"), JNDI_PROVIDER_PORT("jndi.provider.port"), DESTINATION(
+										"dest.name"), FACTORY("factory.name"), MESSAGE_TEXT("msg.text"), MESSAGE_COUNT(
+												"msg.count",
+												"[amount of messages consumed/produced (default: 10 producer, -1/indefinite consumer )]"), MESSAGE_INTERVAL(
+														"msg.interval",
+														"[interval between messages, in ms (default:500ms)]"),;
 		private String property, helpText;
 
 		CONFIG_NAMES(String property) {
-			this(property,"");
+			this(property, "");
 		};
-		
+
 		CONFIG_NAMES(String property, String helpText) {
 			this.property = property;
 			this.helpText = helpText;
@@ -48,7 +43,7 @@ public class HQFailoverRemote {
 		public String toString() {
 			return property;
 		}
-		
+
 		public String helpText() {
 			return helpText;
 		}
@@ -70,6 +65,9 @@ public class HQFailoverRemote {
 
 	private Long interval;
 
+	private Connection connection = null;
+
+	private InitialContext initialContext = null;
 
 	public static void main(String[] args) throws Exception {
 		if (System.getProperty(CONFIG_NAMES.HELP.toString()) != null) {
@@ -77,12 +75,22 @@ public class HQFailoverRemote {
 			System.exit(0);
 		}
 		try {
-			HQFailoverRemote instance = new HQFailoverRemote();
+			final HQFailoverRemote instance = new HQFailoverRemote();
+			Runtime.getRuntime().addShutdownHook(new Thread() {
+				@Override
+				public void run() {
+					try {
+						instance.shutdown();
+					} catch (Exception e) {
+						throw new RuntimeException(e);
+					}
+				}
+			});
 			instance.parseConfig();
 			instance.printConfigMap();
 			instance.run();
 		} catch (Exception e) {
-			System.out.println("ERROR: "+e.getMessage());
+			System.out.println("ERROR: " + e.getMessage());
 			printHelp();
 			e.printStackTrace(System.out);
 		}
@@ -149,14 +157,14 @@ public class HQFailoverRemote {
 		System.out.println("usage: java -D<parameter>=<value> -jar jar_file_name.jar");
 		System.out.println("\tparameters:");
 		for (CONFIG_NAMES config : CONFIG_NAMES.values()) {
-			
-			System.out.println("\t\t" + String.format("%-25s",config.toString()) + config.helpText());
+
+			System.out.println("\t\t" + String.format("%-25s", config.toString()) + config.helpText());
 		}
 		System.out.println();
 	}
-	
+
 	protected void run() throws Exception {
-		if(dryRun) {
+		if (dryRun) {
 			System.out.println("Dry Run");
 			return;
 		}
@@ -165,9 +173,6 @@ public class HQFailoverRemote {
 			printHelp();
 			return;
 		}
-		Connection connection = null;
-
-		InitialContext initialContext = null;
 
 		try {
 
@@ -187,10 +192,10 @@ public class HQFailoverRemote {
 			connection.start();
 
 			if (producerMode) {
-				if(verbose()) {
+				if (verbose()) {
 					System.out.println("PRODUCER Mode");
 				}
-				
+
 				MessageProducer producer = session.createProducer(destination);
 
 				for (int i = 0; i < amount; i++) {
@@ -204,7 +209,7 @@ public class HQFailoverRemote {
 					Thread.sleep(interval);
 				}
 			} else if (consumerMode) {
-				if(verbose()) {
+				if (verbose()) {
 					System.out.println("CONSUMER Mode");
 				}
 
@@ -219,10 +224,17 @@ public class HQFailoverRemote {
 					}
 					Thread.sleep(interval);
 				}
-			} 
+			}
 
 		} finally {
+			shutdown();
+		}
+	}
 
+	private void shutdown() throws Exception {
+		try {
+			System.out.println("Shutting down");
+		} finally {
 			if (connection != null) {
 				connection.close();
 			}
@@ -230,6 +242,6 @@ public class HQFailoverRemote {
 			if (initialContext != null) {
 				initialContext.close();
 			}
-		} 
+		}
 	}
 }
