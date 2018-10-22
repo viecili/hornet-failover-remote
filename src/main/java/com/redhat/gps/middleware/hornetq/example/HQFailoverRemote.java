@@ -19,15 +19,20 @@ import javax.naming.InitialContext;
 public class HQFailoverRemote {
 
 	private enum CONFIG_NAMES {
-		HELP("help", "[prints this help message]"), DRY_RUN("dry", "[activate dry run mode]"), VERBOSE("verbose",
-				"[activate verbose output]"), PRODUCER("producer", "[activate producer mode]"), CONSUMER("consumer",
-						"[activate producer mode]"), JNDI_PROVIDER_URL(Context.PROVIDER_URL), JNDI_PROVIDER_HOST(
-								"jndi.provider.host"), JNDI_PROVIDER_PORT("jndi.provider.port"), DESTINATION(
-										"dest.name"), FACTORY("factory.name"), MESSAGE_TEXT("msg.text"), MESSAGE_COUNT(
-												"msg.count",
-												"[amount of messages consumed/produced (default: 10 producer, -1/indefinite consumer )]"), MESSAGE_INTERVAL(
-														"msg.interval",
-														"[interval between messages, in ms (default:500ms)]"),;
+		HELP("help", "[prints this help message]"), 
+		DRY_RUN("dry", "[activate dry run mode]"), 
+		VERBOSE("verbose", "[activate verbose output]"), 
+		PRODUCER("producer", "[activate producer mode]"), 
+		CONSUMER("consumer", "[activate consumer mode]"), 
+		JNDI_PROVIDER_HOST("jndi.provider.host", "[the JNDI provider host (default: localhost)]"), 
+		JNDI_PROVIDER_PORT("jndi.provider.port", "[the JNDI provider port (default: 4447)]"), 
+		JNDI_PROVIDER_URL(Context.PROVIDER_URL, "[the full JNDI provider url, overrides 'jndi.provider.host' and 'jndi.provider.port']"), 
+		DESTINATION("dest.name", "[the JNDI name of the JMS Destination (queue or topic)]"), 
+		FACTORY("factory.name", "[the JNDI name of the JMS Connection Factory]"), 
+		MESSAGE_TEXT("msg.text", "[the text prefix of the message when in producer mode (default: \"JMS Text Message #\")]"), 
+		MESSAGE_COUNT("msg.count", "[amount of messages consumed/produced (default: 10 producer, -1/indefinite consumer )]"), 
+		MESSAGE_INTERVAL("msg.interval", "[interval between messages, in ms (default:500ms)]"),
+		;
 		private String property, helpText;
 
 		CONFIG_NAMES(String property) {
