@@ -27,7 +27,7 @@ public class HQFailoverRemote {
 		JNDI_PROVIDER_HOST("jndi.provider.host", "[the JNDI provider host (default: localhost)]"), 
 		JNDI_PROVIDER_PORT("jndi.provider.port", "[the JNDI provider port (default: 4447)]"), 
 		JNDI_PROVIDER_URL(Context.PROVIDER_URL, "[the full JNDI provider url, overrides 'jndi.provider.host' and 'jndi.provider.port']"), 
-		DESTINATION("dest.name", "[the JNDI name of the JMS Destination (queue or topic)]"), 
+		DESTINATION("dest.name", "[the JNDI name of the JMS Destination (default: jms/queue/TEST)]"), 
 		FACTORY("factory.name", "[the JNDI name of the JMS Connection Factory]"), 
 		MESSAGE_TEXT("msg.text", "[the text prefix of the message when in producer mode (default: \"JMS Text Message #\")]"), 
 		MESSAGE_COUNT("msg.count", "[amount of messages consumed/produced (default: 10 producer, -1/indefinite consumer )]"), 
@@ -147,7 +147,7 @@ public class HQFailoverRemote {
 			jndiURL = "remote://" + getConfig(CONFIG_NAMES.JNDI_PROVIDER_HOST, "localhost") + ":"
 					+ getConfig(CONFIG_NAMES.JNDI_PROVIDER_PORT, "4447");
 		}
-		destinationName = getConfig(CONFIG_NAMES.DESTINATION, "/queue/TEST");
+		destinationName = getConfig(CONFIG_NAMES.DESTINATION, "jms/queue/TEST");
 		producerMode = getConfig(CONFIG_NAMES.PRODUCER, null) != null;
 		consumerMode = getConfig(CONFIG_NAMES.CONSUMER, null) != null;
 		amount = Integer.valueOf(getConfig(CONFIG_NAMES.MESSAGE_COUNT, (producerMode ? "10" : "-1")));
