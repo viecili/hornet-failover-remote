@@ -27,8 +27,8 @@ public class HQFailoverRemote {
 		JNDI_PROVIDER_HOST("jndi.provider.host", "[the JNDI provider host (default: localhost)]"), 
 		JNDI_PROVIDER_PORT("jndi.provider.port", "[the JNDI provider port (default: 4447)]"), 
 		JNDI_PROVIDER_URL(Context.PROVIDER_URL, "[the full JNDI provider url, overrides 'jndi.provider.host' and 'jndi.provider.port']"), 
-		DESTINATION("dest.name", "[the JNDI name of the JMS Destination (default: /queue/TEST)]"), 
-		FACTORY("factory.name", "[the JNDI name of the JMS Connection Factory (default: /RemoteConnectionFactory)]"), 
+		DESTINATION("dest.name", "[the JNDI name of the JMS Destination (default: jms/queue/TEST)]"), 
+		FACTORY("factory.name", "[the JNDI name of the JMS Connection Factory (default: jms/RemoteConnectionFactory)]"), 
 		MESSAGE_TEXT("msg.text", "[the text prefix of the message when in producer mode (default: \"JMS Text Message #\")]"), 
 		MESSAGE_COUNT("msg.count", "[amount of messages consumed/produced (default: 10 producer, -1/indefinite consumer )]"), 
 		MESSAGE_INTERVAL("msg.interval", "[interval between messages, in ms (default:500ms)]"),
@@ -154,7 +154,7 @@ public class HQFailoverRemote {
 		amount = (amount == -1 ? Integer.MAX_VALUE : amount);
 		msg = getConfig(CONFIG_NAMES.MESSAGE_TEXT, "JMS Text Message #");
 		interval = Long.valueOf(getConfig(CONFIG_NAMES.MESSAGE_INTERVAL, "500"));
-		factoryName = getConfig(CONFIG_NAMES.FACTORY, "/RemoteConnectionFactory");
+		factoryName = getConfig(CONFIG_NAMES.FACTORY, "jms/RemoteConnectionFactory");
 		System.out.println();
 	}
 
@@ -169,16 +169,18 @@ public class HQFailoverRemote {
 	}
 
 	protected void run() throws Exception {
-		if (dryRun) {
-			System.out.println("Dry Run");
-			return;
-		}
+
 		if (!(producerMode ^ consumerMode)) {
 			System.out.println("ERROR: producer or consumer must be specified (mutually exclusive)");
 			printHelp();
 			return;
 		}
-
+		
+		if (dryRun) {
+			System.out.println("Dry Run");
+			return;
+		}
+		
 		try {
 
 			Properties properties = new Properties();
